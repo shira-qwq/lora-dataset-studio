@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional, Tuple
 
 import cv2
@@ -92,11 +92,16 @@ def preprocess_all(image_paths: List[Path],
             else:
                 failed += 1
     else:
-        with ProcessPoolExecutor(max_workers=max_workers) as pool:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = {pool.submit(preprocess_single, p): p for p in image_paths}
             for f in tqdm(as_completed(futures), total=len(futures),
                           desc="Preprocess", unit="img"):
-                res = f.result()
+                try:
+                    res = f.result()
+                except Exception as e:
+                    logger.warning(f"棰勫鐞嗕换鍔″け璐? {futures[f].name}: {e}")
+                    failed += 1
+                    continue
                 if res is not None:
                     results.append(res)
                 else:

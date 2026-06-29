@@ -2,7 +2,7 @@
 
 import logging
 from typing import Tuple
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import cv2
 import numpy as np
@@ -114,7 +114,7 @@ def extract_non_depth_batch(
         for i, (_, img) in enumerate(images):
             features[i] = extract_non_depth_features(img)
     else:
-        with ProcessPoolExecutor(max_workers=max_workers) as pool:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = {
                 pool.submit(extract_non_depth_features, img): i
                 for i, (_, img) in enumerate(images)
@@ -122,6 +122,9 @@ def extract_non_depth_batch(
             for f in tqdm(as_completed(futures), total=len(futures),
                           desc="Extract features", unit="img"):
                 idx = futures[f]
-                features[idx] = f.result()
+                try:
+                    features[idx] = f.result()
+                except Exception as e:
+                    logger.warning("Feature extraction failed for item %s: %s", idx, e)
 
     return features

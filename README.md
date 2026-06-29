@@ -27,7 +27,8 @@ Designed for quick dataset curation before LoRA / style model training.
 |----------|---------|
 | Windows (venv) | `START_VENV.bat` |
 | Windows (system Python) | `START_LOCAL.bat` |
-| macOS / Linux | `./start.sh` |
+| macOS / Linux setup | `scripts/setup_unix.sh` |
+| macOS / Linux start | `./start.sh` |
 
 The launcher will:
 1. Check prerequisites (Python, Node.js, npm)
@@ -61,6 +62,12 @@ First time, or after changing dependencies:
 scripts\setup_windows.bat
 ```
 
+On macOS / Linux:
+
+```bash
+bash scripts/setup_unix.sh
+```
+
 Daily startup:
 
 ```bat
@@ -71,6 +78,12 @@ or:
 
 ```bat
 START_LOCAL.bat
+```
+
+On macOS / Linux:
+
+```bash
+./start.sh
 ```
 
 The setup script writes `.setup/installed.json` after a successful install. After that, daily startup only checks local hashes and importability; it does not run `pip install` or `npm install` unless you rerun setup.

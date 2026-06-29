@@ -25,7 +25,7 @@ def main() -> int:
             file=sys.stderr,
         )
         print(
-            "依赖缺失，请运行 scripts/setup_windows.bat",
+            "依赖缺失，请运行 scripts/setup_windows.bat 或 scripts/setup_unix.sh",
             file=sys.stderr,
         )
         return 1
@@ -36,4 +36,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

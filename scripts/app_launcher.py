@@ -129,7 +129,9 @@ def _resolve_python(mode: str) -> str:
     else:
         venv_python = VENV_DIR / "bin" / "python"
     if not venv_python.exists():
-        raise RuntimeError("Project venv not found. Please run scripts/setup_windows.bat.")
+        raise RuntimeError(
+            "Project venv not found. Please run scripts/setup_windows.bat or scripts/setup_unix.sh."
+        )
     return str(venv_python)
 
 

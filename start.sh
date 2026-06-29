@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Cluster Organizer Launcher — Linux / macOS
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -11,10 +10,9 @@ echo ""
 echo "Logs will be written to .runtime/"
 echo ""
 
-# Prefer python3, fallback to python
 PYTHON=""
 for cmd in python3 python; do
-    if command -v "$cmd" &>/dev/null; then
+    if command -v "$cmd" >/dev/null 2>&1; then
         PYTHON="$cmd"
         break
     fi
@@ -25,10 +23,27 @@ if [ -z "$PYTHON" ]; then
     exit 1
 fi
 
-$PYTHON scripts/app_launcher.py --mode venv
-exit_code=$?
+if [ ! -x ".venv/bin/python" ]; then
+    echo "ERROR: .venv is missing."
+    echo "Please run scripts/setup_unix.sh first."
+    exit 1
+fi
 
-if [ $exit_code -ne 0 ]; then
+if ! "$PYTHON" scripts/check_install_state.py; then
+    echo ""
+    echo "Dependencies are missing or changed."
+    echo "Please run scripts/setup_unix.sh first."
+    exit 1
+fi
+
+if ! .venv/bin/python scripts/check_runtime_imports.py; then
+    echo ""
+    echo "Python runtime check failed."
+    echo "Please run scripts/setup_unix.sh to repair dependencies."
+    exit 1
+fi
+
+if ! "$PYTHON" scripts/app_launcher.py --mode venv; then
     echo ""
     echo "============================================"
     echo " Launch failed."
@@ -42,5 +57,5 @@ if [ $exit_code -ne 0 ]; then
     echo "Or run in debug mode:"
     echo "  $PYTHON scripts/app_launcher.py --mode venv --debug-windows"
     echo ""
-    exit $exit_code
+    exit 1
 fi

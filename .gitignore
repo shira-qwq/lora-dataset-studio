@@ -47,6 +47,7 @@ temp/
 
 # Launcher runtime state
 .runtime/
+.setup/
 
 # Generated env files (launcher creates these)
 .env.local

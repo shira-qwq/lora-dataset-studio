@@ -31,8 +31,8 @@ Designed for quick dataset curation before LoRA / style model training.
 
 The launcher will:
 1. Check prerequisites (Python, Node.js, npm)
-2. Create `.venv` and install Python deps (only once — detects if already installed)
-3. Install frontend deps (only if `node_modules` is missing)
+2. Verify `.setup/installed.json` still matches the current `requirements*.txt` and frontend package files
+3. Check local Python imports for the active interpreter
 4. Start backend + frontend, then open the browser at `http://localhost:5173`
 
 ### Manual Setup
@@ -52,6 +52,28 @@ npm run dev
 ```
 
 Open the URL shown by Vite (default: `http://localhost:5173`).
+
+### Startup and Dependency Setup
+
+First time, or after changing dependencies:
+
+```bat
+scripts\setup_windows.bat
+```
+
+Daily startup:
+
+```bat
+START_VENV.bat
+```
+
+or:
+
+```bat
+START_LOCAL.bat
+```
+
+The setup script writes `.setup/installed.json` after a successful install. After that, daily startup only checks local hashes and importability; it does not run `pip install` or `npm install` unless you rerun setup.
 
 ---
 
@@ -102,6 +124,9 @@ Browse images by visual slices:
 | `features.csv` | 16-dim visual features per image |
 | `inspection_manifest.json` | Inspection slice data, sorting, hit results |
 | `export_manifest.json` | Export records: source, rename mapping, original paths |
+| `requirements.generated.txt` | Auto-generated dependency audit from Python source imports |
+| `DEPENDENCY_AUDIT_CN.md` | Human-readable dependency audit report |
+| `.setup/installed.json` | Local install marker written by `scripts\setup_windows.bat` |
 
 ---
 
@@ -122,9 +147,15 @@ cd studio/frontend_react
 npm run build
 npm run lint
 
+# Optional dev/test deps
+pip install -r requirements-dev.txt
+
 # Backend tests
 cd studio
 pytest tests/
+
+# Dependency audit
+python scripts/audit_python_deps.py
 ```
 
 ---

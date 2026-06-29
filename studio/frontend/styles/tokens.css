@@ -1,0 +1,41 @@
+/* tokens.css — 3 主色 + 3 状态 + 3 簇色 = 9 token
+ *
+ * 设计原则: 简洁统一。所有颜色都从 3 个主色派生。
+ *   --bg:     背景 (主 + 面板)
+ *   --text:   文字 + 边框 (主文字 + 暗化)
+ *   --accent: 按钮 + 高亮 + 链接
+ *
+ * 状态色: success/warning/error (保留以提供反馈)
+ * 簇色: 3 个循环用色
+ */
+
+:root {
+  /* 3 主色 */
+  --bg: #131313;
+  --text: #e5e2e1;
+  --accent: #46f1c5;
+
+  /* 派生: 文字透明度 */
+  --text-soft: rgba(229, 226, 225, 0.7);
+  --text-muted: rgba(229, 226, 225, 0.45);
+
+  /* 派生: 背景层次 */
+  --bg-elev: #1e1e1e;
+  --bg-deep: #0a0a0a;
+  --border: rgba(229, 226, 225, 0.15);
+
+  /* 派生: accent 变体 */
+  --accent-soft: rgba(70, 241, 197, 0.15);
+  --accent-hover: #00d4aa;
+  --on-accent: #00382b;
+
+  /* 3 状态色 */
+  --success: #6bcb77;
+  --warning: #ffd93d;
+  --error: #ff6b6b;
+
+  /* 3 簇色 */
+  --cluster-1: #46f1c5;
+  --cluster-2: #ffd93d;
+  --cluster-3: #ff6b9d;
+}

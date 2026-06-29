@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+body { margin: 0; }
+#root { min-height: 100vh; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #12121a; }
+::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 4px; }
+
+/* Shared keyframes */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+.cache/
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Generated outputs
+*-output/
+outputs/
+output/
+exports/
+analysis_exports/
+organized_exports/
+job_outputs/
+runs/
+tmp/
+temp/
+
+# Launcher runtime state
+.runtime/
+
+# Generated env files (launcher creates these)
+.env.local
+studio/frontend_react/.env.local
+
+# Thumbnails / cache
+thumbnails/
+thumbnail_cache/
+.cache_images/
+_cache/
+*.thumb.*
+*_thumb.*
+*_preview.*
+
+# Models / weights
+models/
+weights/
+checkpoints/
+*.ckpt
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# Private datasets
+datasets/
+data/
+input/
+samples/private/
+
+# Pipeline outputs (can be large — regenerate from source)
+lighting_outputs/
+*_output/
+*_outputs/

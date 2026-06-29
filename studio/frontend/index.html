@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="dark" lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cluster Organizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/themes.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; margin: 0; overflow: hidden; }
+    button { font-family: inherit; }
+    input, select { font-family: inherit; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Theme + Core -->
+  <script src="styles/theme-manager.js?v=20260625_1"></script>
+
+  <!-- Stores (singleton state) -->
+  <script src="store/resources/job-store.js?v=20260625_1"></script>
+  <script src="store/resources/selection-store.js?v=20260625_1"></script>
+  <script src="store/resources/cluster-store.js?v=20260625_1"></script>
+  <script src="store/resources/embedding-store.js?v=20260625_1"></script>
+  <script src="store/resources/image-store.js?v=20260625_1"></script>
+  <script src="store/resources/actions.js?v=20260625_1"></script>
+
+  <!-- Generic UI components -->
+  <script src="components/toast.js?v=20260625_1"></script>
+  <script src="components/confirm-dialog.js?v=20260625_1"></script>
+  <script src="components/theme-picker.js?v=20260625_1"></script>
+
+  <!-- Views -->
+  <script src="components/home.js?v=20260625_1"></script>
+  <script src="components/new-analysis-dialog.js?v=20260625_1"></script>
+  <script src="components/progress-view.js?v=20260625_1"></script>
+  <script src="components/recluster-preview.js?v=20260626_1"></script>
+  <script src="components/analysis-panel.js?v=20260626_1"></script>
+  <script src="components/analysis-view.js?v=20260626_1"></script>
+  <script src="components/similarity-view.js?v=20260626_1"></script>
+  <script src="components/export-review-view.js?v=20260626_1"></script>
+
+  <!-- Organize workspace (core) -->
+  <script src="workspaces/organize/canvas.js?v=20260625_1"></script>
+  <script src="workspaces/organize/grid.js?v=20260625_1"></script>
+  <script src="workspaces/organize/sidebar.js?v=20260625_1"></script>
+  <script src="workspaces/organize/topbar.js?v=20260625_1"></script>
+  <script src="workspaces/organize/selection.js?v=20260625_1"></script>
+  <script src="workspaces/organize/drag.js?v=20260625_1"></script>
+  <script src="workspaces/organize/index.js?v=20260625_1"></script>
+
+  <!-- App entry -->
+  <script src="app.js?v=20260625_1"></script>
+</body>
+</html>

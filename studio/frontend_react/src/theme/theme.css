@@ -1,0 +1,242 @@
+/* =========================================================
+   Dataset Intelligence Studio — Theme Token System
+   =========================================================
+   This file defines semantic CSS variables for all dark
+   themes. Components consume variables like `var(--surface)`
+   rather than hardcoded color literals.
+
+   To add a new theme, append a new `[data-theme="..."]`
+   block with the same variable set.
+   ========================================================= */
+
+/* --- Shared layout tokens (theme-independent) --- */
+:root {
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  --spacing-scale: 1;
+}
+
+/* =========================================================
+   Nebula Dark  (default)
+   Blue-violet accent, close to current #7c9bff feel.
+   ========================================================= */
+[data-theme="nebula-dark"] {
+  --bg: #12121a;
+  --bg-elevated: #1a1a28;
+  --surface: #1e1e2e;
+  --surface-hover: #262640;
+  --surface-active: #2a2a48;
+  --border: #2a2a3e;
+  --border-strong: #3a3a55;
+  --text: #e0e0e8;
+  --text-muted: #888888;
+  --text-faint: #555555;
+  --accent: #7c9bff;
+  --accent-soft: rgba(124, 155, 255, 0.15);
+  --accent-strong: #5a7ae8;
+  --success: #46f1c5;
+  --warning: #ffd93d;
+  --danger: #ff5a6e;
+  --info: #5bc0de;
+
+  /* --- Extended semantic tokens --- */
+  --text-secondary: #aaaaaa;
+  --text-tertiary: #888888;
+  --surface-soft: rgba(30, 30, 46, 0.6);
+  --surface-elevated: #1a1a28;
+  --chip-bg: var(--surface-hover, #262640);
+  --chip-border: var(--border, #2a2a3e);
+  --chip-active-bg: var(--accent-soft, rgba(124, 155, 255, 0.15));
+  --chip-active-border: var(--accent, #7c9bff);
+  --badge-bg: rgba(124, 155, 255, 0.12);
+  --badge-text: var(--accent, #7c9bff);
+  --table-header-bg: #16161f;
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+  --table-border: var(--border, #2a2a3e);
+  --input-bg: var(--surface, #1e1e2e);
+  --input-border: var(--border, #2a2a3e);
+  --input-focus-border: var(--accent, #7c9bff);
+  --tooltip-bg: #2a2a40;
+  --tooltip-border: #3a3a55;
+  --tooltip-text: #e0e0e8;
+  --scrollbar-thumb: #3a3a55;
+  --scrollbar-track: transparent;
+  --log-bg: var(--bg, #12121a);
+  --log-text: var(--text-muted, #888888);
+  --log-border: var(--border, #2a2a3e);
+  --card-bg: var(--surface, #1e1e2e);
+  --card-border: var(--border, #2a2a3e);
+  --card-elevated-shadow: var(--shadow-soft);
+  --skeleton-bg: var(--surface-hover, #262640);
+  --thumbnail-bg: var(--bg-elevated, #1a1a28);
+}
+
+/* =========================================================
+   Graphite Dark
+   Cooler gray-blue, professional tool feel.
+   ========================================================= */
+[data-theme="graphite-dark"] {
+  --bg: #0d1117;
+  --bg-elevated: #151c24;
+  --surface: #1c2333;
+  --surface-hover: #252d3d;
+  --surface-active: #2d3545;
+  --border: #2d3748;
+  --border-strong: #3d4758;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --text-faint: #586069;
+  --accent: #58a6ff;
+  --accent-soft: rgba(88, 166, 255, 0.15);
+  --accent-strong: #388bfd;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --info: #79c0ff;
+
+  /* --- Extended semantic tokens --- */
+  --text-secondary: #c9d1d9;
+  --text-tertiary: #8b949e;
+  --surface-soft: rgba(28, 35, 51, 0.6);
+  --surface-elevated: #151c24;
+  --chip-bg: var(--surface-hover, #252d3d);
+  --chip-border: var(--border, #2d3748);
+  --chip-active-bg: var(--accent-soft, rgba(88, 166, 255, 0.15));
+  --chip-active-border: var(--accent, #58a6ff);
+  --badge-bg: rgba(88, 166, 255, 0.12);
+  --badge-text: var(--accent, #58a6ff);
+  --table-header-bg: #0d1117;
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+  --table-border: var(--border, #2d3748);
+  --input-bg: var(--surface, #1c2333);
+  --input-border: var(--border, #2d3748);
+  --input-focus-border: var(--accent, #58a6ff);
+  --tooltip-bg: #1c2333;
+  --tooltip-border: #2d3748;
+  --tooltip-text: #e6edf3;
+  --scrollbar-thumb: #3d4758;
+  --scrollbar-track: transparent;
+  --log-bg: var(--bg, #0d1117);
+  --log-text: var(--text-muted, #8b949e);
+  --log-border: var(--border, #2d3748);
+  --card-bg: var(--surface, #1c2333);
+  --card-border: var(--border, #2d3748);
+  --card-elevated-shadow: var(--shadow-soft);
+  --skeleton-bg: var(--surface-hover, #252d3d);
+  --thumbnail-bg: var(--bg-elevated, #151c24);
+}
+
+/* =========================================================
+   Amber Dark
+   Warm accent, photography/image-tool feel.
+   ========================================================= */
+[data-theme="amber-dark"] {
+  --bg: #1a1410;
+  --bg-elevated: #241c16;
+  --surface: #2e241e;
+  --surface-hover: #3a2e26;
+  --surface-active: #45382e;
+  --border: #3e3026;
+  --border-strong: #504030;
+  --text: #e8ddd0;
+  --text-muted: #a09080;
+  --text-faint: #706050;
+  --accent: #e8a040;
+  --accent-soft: rgba(232, 160, 64, 0.15);
+  --accent-strong: #d4883a;
+  --success: #5cb85c;
+  --warning: #f0ad4e;
+  --danger: #d9534f;
+  --info: #5bc0de;
+
+  /* --- Extended semantic tokens --- */
+  --text-secondary: #d0c0b0;
+  --text-tertiary: #a09080;
+  --surface-soft: rgba(46, 36, 30, 0.6);
+  --surface-elevated: #241c16;
+  --chip-bg: var(--surface-hover, #3a2e26);
+  --chip-border: var(--border, #3e3026);
+  --chip-active-bg: var(--accent-soft, rgba(232, 160, 64, 0.15));
+  --chip-active-border: var(--accent, #e8a040);
+  --badge-bg: rgba(232, 160, 64, 0.12);
+  --badge-text: var(--accent, #e8a040);
+  --table-header-bg: #1a1410;
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+  --table-border: var(--border, #3e3026);
+  --input-bg: var(--surface, #2e241e);
+  --input-border: var(--border, #3e3026);
+  --input-focus-border: var(--accent, #e8a040);
+  --tooltip-bg: #2e241e;
+  --tooltip-border: #3e3026;
+  --tooltip-text: #e8ddd0;
+  --scrollbar-thumb: #504030;
+  --scrollbar-track: transparent;
+  --log-bg: var(--bg, #1a1410);
+  --log-text: var(--text-muted, #a09080);
+  --log-border: var(--border, #3e3026);
+  --card-bg: var(--surface, #2e241e);
+  --card-border: var(--border, #3e3026);
+  --card-elevated-shadow: var(--shadow-soft);
+  --skeleton-bg: var(--surface-hover, #3a2e26);
+  --thumbnail-bg: var(--bg-elevated, #241c16);
+}
+
+/* =========================================================
+   Forest Dark
+   Green-cyan accent, data-tool feel.
+   ========================================================= */
+[data-theme="forest-dark"] {
+  --bg: #0e1412;
+  --bg-elevated: #161e1a;
+  --surface: #1e2822;
+  --surface-hover: #28342c;
+  --surface-active: #324036;
+  --border: #2a3a30;
+  --border-strong: #3a4a40;
+  --text: #dce8e0;
+  --text-muted: #8a9e90;
+  --text-faint: #5a6e60;
+  --accent: #4cd9a0;
+  --accent-soft: rgba(76, 217, 160, 0.15);
+  --accent-strong: #34b880;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --info: #58a6ff;
+
+  /* --- Extended semantic tokens --- */
+  --text-secondary: #c0d0c8;
+  --text-tertiary: #8a9e90;
+  --surface-soft: rgba(30, 40, 34, 0.6);
+  --surface-elevated: #161e1a;
+  --chip-bg: var(--surface-hover, #28342c);
+  --chip-border: var(--border, #2a3a30);
+  --chip-active-bg: var(--accent-soft, rgba(76, 217, 160, 0.15));
+  --chip-active-border: var(--accent, #4cd9a0);
+  --badge-bg: rgba(76, 217, 160, 0.12);
+  --badge-text: var(--accent, #4cd9a0);
+  --table-header-bg: #0e1412;
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+  --table-border: var(--border, #2a3a30);
+  --input-bg: var(--surface, #1e2822);
+  --input-border: var(--border, #2a3a30);
+  --input-focus-border: var(--accent, #4cd9a0);
+  --tooltip-bg: #1e2822;
+  --tooltip-border: #2a3a30;
+  --tooltip-text: #dce8e0;
+  --scrollbar-thumb: #3a4a40;
+  --scrollbar-track: transparent;
+  --log-bg: var(--bg, #0e1412);
+  --log-text: var(--text-muted, #8a9e90);
+  --log-border: var(--border, #2a3a30);
+  --card-bg: var(--surface, #1e2822);
+  --card-border: var(--border, #2a3a30);
+  --card-elevated-shadow: var(--shadow-soft);
+  --skeleton-bg: var(--surface-hover, #28342c);
+  --thumbnail-bg: var(--bg-elevated, #161e1a);
+}

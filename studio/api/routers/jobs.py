@@ -75,7 +75,9 @@ _cancel_flags: Dict[str, threading.Event] = {}
 def _job_state_path(output_dir: str) -> Path:
     """Job state path. New jobs write to _studio/. Old jobs at root."""
     p = Path(output_dir)
-    new_path = p / "_studio" / ".job_state.json"
+    from light_analysis_engine.workspace import WorkspaceLayout
+    layout = WorkspaceLayout.from_output_root(p)
+    new_path = layout.studio_dir / ".job_state.json"
     old_path = p / ".job_state.json"
     if new_path.exists() or not old_path.exists():
         return new_path
@@ -85,7 +87,9 @@ def _job_state_path(output_dir: str) -> Path:
 def _job_log_path(output_dir: str) -> Path:
     """Job log path. New jobs write to _studio/logs/. Old jobs at root."""
     p = Path(output_dir)
-    new_path = p / "_studio" / "logs" / "job.log"
+    from light_analysis_engine.workspace import WorkspaceLayout
+    layout = WorkspaceLayout.from_output_root(p)
+    new_path = layout.logs_dir / "job.log"
     old_path = p / "job.log"
     if new_path.exists() or not old_path.exists():
         return new_path
@@ -331,9 +335,10 @@ def _background_worker(job_id: str, config: dict):
         state = _jobs.get(job_id)
         if state and state.get("run_config"):
             import json as _json
-            rc_dir = Path(output_folder) / "_studio"
-            rc_dir.mkdir(parents=True, exist_ok=True)
-            rc_path = rc_dir / "run_config.json"
+            from light_analysis_engine.workspace import WorkspaceLayout
+            layout = WorkspaceLayout.from_output_root(output_folder)
+            layout.ensure_runtime_dirs()
+            rc_path = layout.run_config_path
             try:
                 with open(rc_path, "w", encoding="utf-8") as f:
                     _json.dump(state["run_config"], f, indent=2, ensure_ascii=False)
@@ -588,6 +593,20 @@ async def submit_job(req: JobSubmit):
         "progress": 0.0,
         "last_log": "",
     }
+    try:
+        from light_analysis_engine.workspace import JobManifest, WorkspaceLayout, write_job_manifest
+        layout = WorkspaceLayout.from_output_root(req.output_folder)
+        layout.ensure_runtime_dirs()
+        write_job_manifest(layout, JobManifest(
+            job_id=job_id,
+            output_root=layout.output_root,
+            input_roots=[Path(p).expanduser().resolve() for p in req.input_folders],
+            created_at=_jobs[job_id]["created_at"],
+            version="1",
+            layout_version="workspace-v1",
+        ))
+    except Exception as e:
+        print(f"[WARN] write job manifest failed for {job_id}: {e}")
     _event_queues[job_id] = asyncio.Queue()
     _cancel_flags[job_id] = threading.Event()
     _save_state(job_id)
@@ -704,6 +723,55 @@ async def get_job(job_id: str):
     if not state:
         raise HTTPException(404, f"Job not found: {job_id}")
     return state
+
+
+@router.get("/{job_id}/manifest")
+async def get_job_manifest(job_id: str):
+    from light_analysis_engine.workspace import get_workspace_runtime
+    return get_workspace_runtime(job_id).manifest_json()
+
+
+@router.get("/{job_id}/images")
+async def get_job_images(job_id: str, size: int = Query(384, ge=64, le=2048)):
+    from light_analysis_engine.workspace import get_workspace_runtime
+    return get_workspace_runtime(job_id).images_json(size=size)
+
+
+@router.get("/{job_id}/images/{image_id}/meta")
+async def get_job_image_meta(job_id: str, image_id: str, size: int = Query(384, ge=64, le=2048)):
+    from light_analysis_engine.workspace import get_workspace_runtime
+    return get_workspace_runtime(job_id).media.get_image_ref(image_id, size=size).to_json()
+
+
+@router.get("/{job_id}/images/{image_id}/thumbnail")
+async def get_job_image_thumbnail(job_id: str, image_id: str, size: int = Query(384, ge=64, le=2048)):
+    from light_analysis_engine.workspace import get_workspace_runtime
+    return get_workspace_runtime(job_id).media.get_thumbnail_response(image_id, size=size)
+
+
+@router.get("/{job_id}/images/{image_id}/original")
+async def get_job_image_original(job_id: str, image_id: str):
+    from light_analysis_engine.workspace import get_workspace_runtime
+    return get_workspace_runtime(job_id).media.get_original_response(image_id)
+
+
+@router.get("/{job_id}/clusters")
+async def get_job_clusters(job_id: str, size: int = Query(384, ge=64, le=2048)):
+    from light_analysis_engine.workspace import get_workspace_runtime
+    return get_workspace_runtime(job_id).clusters_json(size=size)
+
+
+@router.post("/{job_id}/exports")
+async def create_job_export(job_id: str, body: dict):
+    from light_analysis_engine.workspace import ExportRequest, get_workspace_runtime
+    runtime = get_workspace_runtime(job_id)
+    result = runtime.exports.export_images(ExportRequest(
+        image_ids=[str(v) for v in (body.get("image_ids") or []) if v],
+        folder_name=body.get("folder_name") or body.get("export_name") or "export",
+        rename_mode=body.get("rename_mode") or "keep_original",
+        skip_duplicates=bool(body.get("skip_duplicates", False)),
+    ))
+    return result.__dict__
 
 
 @router.get("/{job_id}/log")

@@ -17,6 +17,7 @@ import type { FitMode } from './types';
 export interface ThumbnailImageProps {
   jobId: string;
   imagePath: string;
+  thumbnailUrl?: string | null;
   /** 缩略图尺寸（默认 240） */
   size?: number;
   /** 缓存刷新档位: small / medium / large */
@@ -37,11 +38,12 @@ export default function ThumbnailImage({
   fitMode = 'fit',
   alt = '',
   onLoad,
+  thumbnailUrl,
 }: ThumbnailImageProps) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [thumbError, setThumbError] = useState(false);
 
-  const thumbUrl = getThumbnailUrl(jobId, imagePath, size, qualityKey);
+  const thumbUrl = thumbnailUrl || getThumbnailUrl(jobId, imagePath, size, qualityKey);
 
   const ext = (alt || imagePath).split('.').pop()?.toLowerCase() || '';
   const isVector = ['svg', 'webp'].includes(ext);

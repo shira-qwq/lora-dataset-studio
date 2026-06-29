@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getOriginalImageUrl } from '../../api/client';
 
 export interface ImagePreviewMeta {
   filename?: string;
@@ -13,6 +12,7 @@ interface ImagePreviewModalProps {
   open: boolean;
   jobId: string;
   imageId?: string;
+  originalUrl?: string | null;
   filename: string;
   fallbackSrc?: string;
   meta?: ImagePreviewMeta;
@@ -27,8 +27,8 @@ function formatSize(value: number | string | undefined): string | null {
 
 export default function ImagePreviewModal({
   open,
-  jobId,
   imageId,
+  originalUrl,
   filename,
   fallbackSrc,
   meta,
@@ -39,19 +39,18 @@ export default function ImagePreviewModal({
 
   useEffect(() => {
     if (!open) return;
-    setMode(imageId ? 'original' : 'fallback');
+    setMode(originalUrl ? 'original' : 'fallback');
     setLastError(imageId ? '' : '没有 image_id，无法请求原图接口。');
     const handler = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, imageId, onClose]);
+  }, [open, originalUrl, onClose]);
 
   const originalSrc = useMemo(() => {
-    if (!jobId || !imageId) return '';
-    return getOriginalImageUrl(jobId, imageId);
-  }, [jobId, imageId]);
+    return originalUrl || '';
+  }, [originalUrl]);
 
   if (!open) return null;
 

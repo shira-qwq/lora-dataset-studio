@@ -25,9 +25,8 @@ def ensure_output_dirs(output_folder: str, cluster_names: Dict[int, str], new_st
     root = Path(output_folder)
     root.mkdir(parents=True, exist_ok=True)
     if new_structure:
-        for sub in ["features", "clustering", "inspection", "logs", "reports"]:
-            (root / "_studio" / sub).mkdir(parents=True, exist_ok=True)
-        (root / "_cache" / "thumbnails").mkdir(parents=True, exist_ok=True)
+        from light_analysis_engine.workspace import WorkspaceLayout
+        WorkspaceLayout.from_output_root(root).ensure_runtime_dirs()
 
 
 def write_features_csv(output_folder: str,
@@ -428,13 +427,30 @@ def _out(output_folder: str, *segments: str) -> Path:
 
 def _out_new(output_folder: str, *segments: str) -> Path:
     """Resolve a new-structure path under _studio/ or _cache/."""
-    return Path(output_folder) / "_studio" / segments[0] / Path(*segments[1:])
+    from light_analysis_engine.workspace import WorkspaceLayout
+    layout = WorkspaceLayout.from_output_root(output_folder)
+    if not segments:
+        return layout.studio_dir
+    sub = segments[0]
+    tail = Path(*segments[1:]) if len(segments) > 1 else Path("")
+    if sub == "features":
+        return layout.features_dir / tail
+    if sub == "clustering":
+        return layout.clustering_dir / tail
+    if sub == "inspection":
+        return layout.inspection_dir / tail
+    if sub == "reports":
+        return layout.studio_dir / "reports" / tail
+    if sub == "":
+        return layout.studio_dir / tail
+    return layout.studio_dir / sub / tail
 
 
 def _out_thumb(output_folder: str, use_new_structure: bool = False) -> Path:
     """Resolve thumbnail cache directory."""
     if use_new_structure:
-        return Path(output_folder) / "_cache" / "thumbnails"
+        from light_analysis_engine.workspace import WorkspaceLayout
+        return WorkspaceLayout.from_output_root(output_folder).thumbnails_dir
     return Path(output_folder) / "thumbnails"
 
 
@@ -495,6 +511,46 @@ def write_all(output_folder: str, result: dict, write_extras: bool = False,
     # 创建目录
     ensure_output_dirs(output_folder, cluster_names, new_structure=new_structure)
 
+    if new_structure:
+        from light_analysis_engine.workspace import (
+            ImageIndexEntry,
+            WorkspaceLayout,
+            infer_job_manifest,
+            stable_image_id,
+            write_image_index,
+            write_job_manifest,
+        )
+        layout = WorkspaceLayout.from_output_root(output_folder)
+        manifest = infer_job_manifest(layout)
+        write_job_manifest(layout, manifest)
+        index_entries = []
+        for image_path in image_paths:
+            source = Path(image_path)
+            try:
+                resolved = source.resolve()
+            except (OSError, RuntimeError):
+                resolved = source
+            rel = resolved.name
+            for input_root in manifest.input_roots:
+                try:
+                    rel = str(resolved.relative_to(input_root.resolve())).replace("\\", "/")
+                    break
+                except (OSError, ValueError):
+                    continue
+            try:
+                file_size = resolved.stat().st_size
+            except OSError:
+                file_size = None
+            index_entries.append(ImageIndexEntry(
+                image_id=stable_image_id(rel),
+                source_path=resolved,
+                relative_path=rel,
+                filename=resolved.name,
+                file_size=file_size,
+                exists=resolved.exists(),
+            ))
+        write_image_index(layout, index_entries)
+
     # === 必写 (Web UI 需要) ===
     write_features_csv(str(_ensure_dir(out_s("features", ""))), features, feature_names, labels, filenames)
     write_cluster_summary(str(_ensure_dir(out_s("clustering", ""))), features, feature_names, labels, filenames, importance)
@@ -531,7 +587,9 @@ def write_all(output_folder: str, result: dict, write_extras: bool = False,
 
     # === 缩略图预生成（关键优化） ===
     if image_paths:
-        write_thumbnails(str(thumb_dir), image_paths, size=256, quality=75)
+        # write_thumbnails ALWAYS appends /thumbnails, so pass the parent dir
+        thumb_base = str(thumb_dir.parent)
+        write_thumbnails(thumb_base, image_paths, size=256, quality=75)
 
     # === cluster_analysis.json (Web UI 必需) ===
     if cluster_analysis:
@@ -602,19 +660,18 @@ def write_all(output_folder: str, result: dict, write_extras: bool = False,
             logger.info(f"iteration_advice.json: {adv_out}")
 
         # Lighting Atlas (alternative format)
-        _write_atlas_csv(output_folder, result, cluster_names, new_structure=new_structure)
+        _write_atlas_csv(output_folder, result, cluster_names)
 
         # 增强 cluster_health
-        _enhance_health(output_folder, result, cluster_names, new_structure=new_structure)
+        _enhance_health(output_folder, result, cluster_names)
 
         # UMAP Plotly
         generate_lighting_map(
             output_folder, embedding_3d, labels, filenames, cluster_names,
             mode=result.get("plotly_mode", "3d"),
             show_thumbnails=result.get("plotly_show_thumbnails", False),
-            new_structure=new_structure,
         )
-        generate_thumbnail_grid(output_folder, image_paths, filenames, labels, cluster_names, new_structure=new_structure)
+        generate_thumbnail_grid(output_folder, image_paths, filenames, labels, cluster_names)
     else:
         logger.info("(skipped: extras - pass write_extras=True to enable)")
 

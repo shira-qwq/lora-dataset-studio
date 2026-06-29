@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ClusterInfo, ImageItem } from '../api/client';
-import { fetchClusters, fetchImages, saveOrganizeState, exportByCluster, fetchJobs, getThumbnailUrl, fetchOrganizeState, updateThumbnailSize } from '../api/client';
+import { saveOrganizeState, exportByCluster, fetchJobs, fetchOrganizeState, updateThumbnailSize } from '../api/client';
 import type { JobInfo } from '../api/client';
+import { getJobClusters } from '../api/jobWorkspace';
 import type { ClusterData, FitMode, ImageData, ManualOrder, PendingMoves, PendingRenames, ClusterLayout, ViewMode } from '../components/organize/types';
 import type { BoardRect } from '../components/organize/boardTypes';
 import { buildClusterFrame } from '../components/organize/boardFrameBuilder';
@@ -267,7 +267,7 @@ export default function OrganizePage() {
     setIsLoading(true);
     setError(null);
     try {
-      const clusterResp = await fetchClusters(jobId);
+      const clusterResp = await getJobClusters(jobId, thumbnailQualityToSize(thumbnailQualityRef.current));
       let layout: ClusterLayout = {};
       let manualOrderData: ManualOrder = {};
       try {
@@ -278,24 +278,22 @@ export default function OrganizePage() {
         }
       } catch { /* optional */ }
 
-      const clusterPromises = clusterResp.clusters
-        .filter((c) => String(c.id) !== '-1')
-        .map(async (c: ClusterInfo) => {
-          const imgResp = await fetchImages(jobId, c.id, 500);
-          let images: ImageData[] = (imgResp.images || []).map((img: ImageItem) => ({
-            id: img.filename,
-            image_id: (img as any).image_id,
+      const clusterPromises = clusterResp
+        .filter((c) => String(c.clusterId) !== '-1')
+        .map(async (c) => {
+          let images: ImageData[] = (c.images || []).map((img) => ({
+            id: img.imageId,
+            image_id: img.imageId,
             filename: img.filename,
-            image_path: img.image_path || img.filename,
-            clusterId: c.id,
-            thumbUrl: getThumbnailUrl(
-              jobId,
-              img.image_path || img.filename,
-              thumbnailQualityToSize(thumbnailQualityRef.current),
-              thumbnailQualityRef.current,
-            ),
+            image_path: img.filename,
+            clusterId: c.clusterId,
+            thumbUrl: img.thumbnailUrl || '',
+            originalUrl: img.originalUrl,
+            exists: img.exists,
+            missingReason: img.missingReason,
+            aspectRatio: img.width && img.height ? img.width / img.height : undefined,
           }));
-          const clusterManualOrder = manualOrderData[c.id];
+          const clusterManualOrder = manualOrderData[c.clusterId];
           if (clusterManualOrder && clusterManualOrder.length > 0) {
             const orderMap = new Map(clusterManualOrder.map((fn, i) => [fn, i]));
             images.sort((a, b) => {
@@ -305,9 +303,9 @@ export default function OrganizePage() {
             });
           }
           return {
-            id: c.id, name: c.name, count: c.count,
+            id: c.clusterId, name: c.title, count: c.count ?? images.length,
             color: c.color || '#46f1c5',
-            suggestedName: c.suggested_name || c.name,
+            suggestedName: c.suggestedName || c.title,
             images,
           } as ClusterData;
         });
@@ -369,11 +367,11 @@ export default function OrganizePage() {
       setDraggedFilename(null);
       setClusters((prev) => {
         const updated = prev.map((c) => ({ ...c, images: [...c.images] }));
-        const movedImages: Record<string, { filename: string; image_path: string }> = {};
+        const movedImages: Record<string, ImageData> = {};
         updated.forEach((c) => {
           c.images = c.images.filter((img) => {
             if (filesToMove.includes(img.filename)) {
-              movedImages[img.filename] = { filename: img.filename, image_path: (img as any).image_path || img.filename };
+              movedImages[img.filename] = img;
               return false;
             }
             return true;
@@ -383,20 +381,17 @@ export default function OrganizePage() {
         if (target) {
           Object.values(movedImages).forEach((info) => {
             target.images.push({
-              id: info.filename, filename: info.filename, image_path: info.image_path,
+              ...info,
+              id: info.id || info.image_id || info.filename,
+              filename: info.filename,
+              image_path: info.image_path || info.filename,
               clusterId: targetClusterId,
-              thumbUrl: getThumbnailUrl(
-                jobId,
-                info.image_path,
-                thumbnailQualityToSize(thumbnailQualityRef.current),
-                thumbnailQualityRef.current,
-              ),
             });
           });
         }
         return updated;
       });
-    }, [jobId, selectedFilenames, pendingMoves],
+    }, [selectedFilenames, pendingMoves],
   );
   const handleDrop = moveImageToCluster;
 

@@ -19,7 +19,7 @@ import {
   SLICE_GROUPS,
 } from './inspectionPresets';
 import type { InspectionPreset, SliceGroup, GroupMeta } from './inspectionPresets';
-import { getSliceCopy, getSliceLabel, getSliceCopyWithLang } from './inspectionDictionary.zh';
+import { getSliceLabel, getSliceCopyWithLang } from './inspectionDictionary.zh';
 import type { SliceCopy } from './inspectionDictionary.zh';
 import { getFieldExplain, getFieldExplainShort } from './fieldExplain';
 import type { FieldExplain } from './fieldExplain';

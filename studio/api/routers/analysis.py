@@ -583,16 +583,21 @@ def _resolve_image_paths(job_dir) -> list:
     paths = []
     raw_names = []
 
-    # Try atlas_points.csv (image_path column)
-    atlas_path = job_dir / "atlas_points.csv"
-    if atlas_path.exists():
-        df = pd.read_csv(atlas_path)
-        if "image_path" in df.columns:
-            raw_names = df["image_path"].tolist()
+    # Try atlas_points.csv (image_path column) — new then old
+    from ..organize_state import read_csv as _os_read_csv
+    atlas_rows = _os_read_csv(job_dir, "atlas_points.csv")
+    if atlas_rows:
+        raw_names = [r.get("image_path", "") for r in atlas_rows if r.get("image_path")]
+    else:
+        atlas_rows = _os_read_csv(job_dir, "umap_points_3d.csv")
+        if atlas_rows:
+            raw_names = [r.get("image_path", "") for r in atlas_rows if r.get("image_path")]
 
     # Fallback to features.csv (filename column)
     if not raw_names:
         csv_path = job_dir / "features.csv"
+        if not csv_path.exists():
+            csv_path = job_dir / "_studio" / "features" / "features.csv"
         if csv_path.exists():
             df = pd.read_csv(csv_path)
             if "filename" in df.columns:
@@ -601,15 +606,16 @@ def _resolve_image_paths(job_dir) -> list:
     # Read input_folders from job state for original source resolution
     input_folders = []
     try:
-        state_path = job_dir / ".job_state.json"
-        if state_path.exists():
-            with open(state_path, encoding="utf-8") as f:
-                state = json.load(f)
-            cfg = state.get("config", {})
-            raw = cfg.get("input_folders") or cfg.get("input_dir") or []
-            if isinstance(raw, str):
-                raw = [raw]
-            input_folders = [Path(p).resolve() for p in raw if p]
+        for state_candidate in [job_dir / "_studio" / ".job_state.json", job_dir / ".job_state.json"]:
+            if state_candidate.exists():
+                with open(state_candidate, encoding="utf-8") as f:
+                    state = json.load(f)
+                cfg = state.get("config", {})
+                raw = cfg.get("input_folders") or cfg.get("input_dir") or []
+                if isinstance(raw, str):
+                    raw = [raw]
+                input_folders = [Path(p).resolve() for p in raw if p]
+                break
     except Exception:
         pass
 

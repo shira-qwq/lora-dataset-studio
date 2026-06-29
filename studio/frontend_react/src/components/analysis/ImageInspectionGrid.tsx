@@ -4,6 +4,7 @@ import {
   fetchHistogramSummary,
   fetchQualityEdgeSummary,
 } from '../../api/client';
+import { getJobImages } from '../../api/jobWorkspace';
 import type { AnalysisCapability } from '../../api/client';
 import { resolvePreset, checkSliceAvailability, getSliceLabel } from '../../analysis/inspectionManifest';
 import WorkspaceImageGrid from '../image-workspace/WorkspaceImageGrid';
@@ -108,7 +109,23 @@ export default function ImageInspectionGrid({
     setError(null);
     try {
       const data = await loadWithFallback(channelKey, jobId, sortField, sortOrder, limitRef.current);
-      setRecords(data.records || []);
+      const mediaRefs = await getJobImages(jobId, thumbnailQualityToSize(thumbnailQuality)).catch(() => []);
+      const mediaById = new Map(mediaRefs.map((ref) => [ref.imageId, ref]));
+      const mediaByFilename = new Map(mediaRefs.map((ref) => [ref.filename, ref]));
+      const enriched = (data.records || []).map((record) => {
+        const stableId = getStableImageId(record);
+        const ref = mediaById.get(stableId) || mediaByFilename.get(getFilename(record));
+        return ref ? {
+          ...record,
+          image_id: ref.imageId,
+          filename: ref.filename,
+          thumbnail_url: ref.thumbnailUrl,
+          original_url: ref.originalUrl,
+          exists: ref.exists,
+          missing_reason: ref.missingReason,
+        } : record;
+      });
+      setRecords(enriched);
       setTotal(data.total ?? 0);
     } catch (err: any) {
       setError(err.message || '加载失败');
@@ -117,7 +134,7 @@ export default function ImageInspectionGrid({
     } finally {
       setLoading(false);
     }
-  }, [channelKey, isAvailable, jobId, presetKey, sortField, sortOrder]);
+  }, [channelKey, isAvailable, jobId, presetKey, sortField, sortOrder, thumbnailQuality]);
 
   useEffect(() => {
     limitRef.current = 100;
@@ -128,6 +145,10 @@ export default function ImageInspectionGrid({
     image_id: getStableImageId(record),
     image_path: getImagePath(record),
     filename: getFilename(record),
+    thumbnailUrl: record.thumbnail_url || null,
+    originalUrl: record.original_url || null,
+    exists: record.exists,
+    missingReason: record.missing_reason || null,
     fields: record,
   })), [records]);
 

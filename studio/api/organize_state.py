@@ -6,8 +6,24 @@ from pathlib import Path
 from typing import Dict, List
 
 
+def _resolve_path(base: Path, filename: str) -> Path:
+    """Resolve a file path with new-structure fallback.
+
+    New structure: <base>/_studio/<subdir>/<filename>
+    Old structure:  <base>/<filename>
+
+    The filename can include a subdir hint: "features/atlas_points.csv"
+    """
+    from light_analysis_engine.workspace import WorkspaceLayout
+    layout = WorkspaceLayout.from_output_root(base)
+    for candidate in layout.read_file_candidates(filename):
+        if candidate.exists():
+            return candidate
+    return layout.studio_dir / filename
+
+
 def read_json(path: Path, filename: str) -> dict:
-    fp = path / filename
+    fp = _resolve_path(path, filename)
     if not fp.exists():
         return {}
     try:
@@ -18,7 +34,7 @@ def read_json(path: Path, filename: str) -> dict:
 
 
 def read_csv(path: Path, filename: str) -> List[dict]:
-    fp = path / filename
+    fp = _resolve_path(path, filename)
     if not fp.exists():
         return []
     try:
@@ -266,12 +282,23 @@ def load_layout(path: Path) -> dict:
     return read_json(path, "cluster_layout.json")
 
 
+def _resolve_write_dir(base: Path) -> Path:
+    """Return the appropriate write directory for new vs old structure."""
+    from light_analysis_engine.workspace import WorkspaceLayout
+    layout = WorkspaceLayout.from_output_root(base)
+    if layout.studio_dir.exists():
+        layout.clustering_dir.mkdir(parents=True, exist_ok=True)
+        return layout.clustering_dir
+    return base
+
+
 def save_layout(path: Path, layout: dict) -> bool:
     """Save cluster_layout.json. Returns True on success."""
     if not layout:
         return True  # nothing to save
     try:
-        with open(path / "cluster_layout.json", "w", encoding="utf-8") as f:
+        target = _resolve_write_dir(path)
+        with open(target / "cluster_layout.json", "w", encoding="utf-8") as f:
             json.dump(layout, f, indent=2, ensure_ascii=False)
         return True
     except OSError:
@@ -293,7 +320,8 @@ def save_manual_order(path: Path, order: dict) -> bool:
     if not order:
         return True
     try:
-        with open(path / "manual_order.json", "w", encoding="utf-8") as f:
+        target = _resolve_write_dir(path)
+        with open(target / "manual_order.json", "w", encoding="utf-8") as f:
             json.dump(order, f, indent=2, ensure_ascii=False)
         return True
     except OSError:

@@ -47,6 +47,10 @@ export interface WorkspaceImageData {
   image_path: string;
   /** 文件名（展示用） */
   filename: string;
+  thumbnailUrl?: string | null;
+  originalUrl?: string | null;
+  exists?: boolean;
+  missingReason?: string | null;
   /** 字段原始值（供 badges/metrics/hover 计算） */
   fields: Record<string, any>;
 }

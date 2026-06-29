@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import ThumbnailImage from './ThumbnailImage';
 import ImageViewerOverlay from '../ImageViewerOverlay';
-import { getThumbnailUrl, getOriginalImageUrl } from '../../api/client';
 import type {
   WorkspaceImageData,
   WorkspaceBadgeDef,
@@ -81,12 +80,13 @@ export default function WorkspaceImageCard({
         <ThumbnailImage
           jobId={jobId}
           imagePath={data.image_path}
+          thumbnailUrl={data.thumbnailUrl}
           size={thumbnailSize}
           qualityKey={thumbnailQualityKey}
           fitMode={fitMode}
           alt={shortName}
         />
-        {data.image_id && (
+        {data.originalUrl && (
           <button
             type="button"
             onClick={(event) => {
@@ -127,9 +127,9 @@ export default function WorkspaceImageCard({
         </div>
       )}
 
-      {data.image_id && previewOpen && (
+      {previewOpen && (
         <ImageViewerOverlay
-          src={getOriginalImageUrl(jobId, data.image_id)}
+          originalUrl={data.originalUrl || null}
           filename={data.filename || data.image_id}
           onClose={() => setPreviewOpen(false)}
         />

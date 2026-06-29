@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { ClusterData, ImageData } from './types';
 import ImageViewerOverlay from '../ImageViewerOverlay';
-import { getOriginalImageUrl } from '../../api/client';
-import { getStableImageId } from '../../analysis/exportCart';
 
 interface ClusterCardProps {
   jobId: string;
@@ -46,7 +44,7 @@ function getGap(tilePx: number): number {
 }
 
 export default function ClusterCard({
-  jobId, cluster, selectedFilenames, collapsed, tilePixelSize, clusterColumns,
+  cluster, selectedFilenames, collapsed, tilePixelSize, clusterColumns,
   fitMode = 'cover', boardMode = 'flow', dragHandleProps, isPinned = false,
   onSelectImage, onDragStart, onDragEnd, onDrop, onRename, onToggleCollapse, onTogglePin,
   onClusterDragStart, onClusterDrop,
@@ -239,7 +237,7 @@ export default function ClusterCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPreviewImage(img);
+                  if (img.originalUrl) setPreviewImage(img);
                 }}
                 style={{
                   position: 'absolute', top: 2, right: 2,
@@ -299,7 +297,7 @@ export default function ClusterCard({
 
       {previewImage && (
         <ImageViewerOverlay
-          src={getOriginalImageUrl(jobId, previewImage.image_id || getStableImageId(previewImage))}
+          originalUrl={previewImage.originalUrl}
           filename={previewImage.filename}
           onClose={() => setPreviewImage(null)}
         />

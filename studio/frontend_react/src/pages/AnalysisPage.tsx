@@ -10,9 +10,6 @@ import {
   fetchAnalysisStatus,
   buildAnalysisChannel,
   exportAnalysis,
-  fetchMetadataSummary,
-  fetchHistogramSummary,
-  fetchQualityEdgeSummary,
   fetchJobs as fetchAnalysisJobs,
 } from '../api/client';
 import { useJobs } from '../hooks/useJobs';
@@ -44,7 +41,6 @@ import {
   makeExportCartItem,
   saveExportCart,
   sanitizeFolderName,
-  getStableImageId,
   uniqueIds,
 } from '../analysis/exportCart';
 import type { ExportCartState } from '../analysis/exportCart';
@@ -104,40 +100,6 @@ const PANEL_GROUPS: PanelGroup[] = [
 ];
 
 type ViewMode = 'inspection' | 'raw-data';
-
-async function fetchSliceRecordsForExport(
-  jobId: string,
-  sliceId: string,
-  capability: AnalysisStatus['capability'] | null,
-  limit = 500,
-): Promise<any[]> {
-  const preset = resolvePreset(sliceId);
-  if (!preset) return [];
-  const availability = checkSliceAvailability(preset, capability);
-  if (!availability.available) return [];
-
-  const sortField = preset.sortBy?.field || undefined;
-  const sortOrder = preset.sortBy?.order || undefined;
-  const channelKey = preset.requiredChannel || 'basic_metadata';
-
-  try {
-    if (channelKey === 'histogram') {
-      return (await fetchHistogramSummary(jobId, sortField, sortOrder, undefined, limit)).records || [];
-    }
-    if (channelKey === 'quality_edge') {
-      return (await fetchQualityEdgeSummary(jobId, sortField, sortOrder, undefined, limit)).records || [];
-    }
-    return (await fetchMetadataSummary(jobId, sortField, sortOrder, limit)).records || [];
-  } catch {
-    if (channelKey === 'histogram') {
-      return (await fetchHistogramSummary(jobId, undefined, undefined, undefined, limit)).records || [];
-    }
-    if (channelKey === 'quality_edge') {
-      return (await fetchQualityEdgeSummary(jobId, undefined, undefined, undefined, limit)).records || [];
-    }
-    return (await fetchMetadataSummary(jobId, undefined, undefined, limit)).records || [];
-  }
-}
 
 export default function AnalysisPage() {
   // 鈹€鈹€ URL-based job_id 鈹€鈹€
@@ -323,7 +285,7 @@ export default function AnalysisPage() {
     defaultName: string;
     imageIds: string[];
     sliceIds?: string[];
-    source: 'current_slice' | 'selected_images' | 'multi_slice_separate';
+    source: 'current_slice' | 'slice_top_n' | 'selected_images' | 'multi_slice_separate';
     topN?: number;
   } | null>(null);
 
@@ -371,7 +333,7 @@ export default function AnalysisPage() {
     });
   }, [activeSlice, selectedImageIds]);
 
-  const handleAddBatchGroup = useCallback((label: string, sliceIds: string[]) => {
+  const handleAddBatchGroup = useCallback((_label: string, sliceIds: string[]) => {
     const topN = exportBatchTopN;
     const items = sliceIds
       .map((sliceId) => {

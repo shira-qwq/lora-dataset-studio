@@ -217,6 +217,8 @@ async def copy_by_cluster(body: dict):
         "include_user_moves": true
     }
     """
+    from light_analysis_engine.workspace import JobWorkspaceRuntime, get_workspace_runtime
+    from light_analysis_engine.workspace.image_index import stable_image_id
     from ..path_resolver import resolve_output_root, unique_filename, sanitize_filename, sanitize_filename
 
     job_id = body.get("job_id", "")
@@ -224,28 +226,14 @@ async def copy_by_cluster(body: dict):
     if not job_id:
         raise HTTPException(422, "job_id is required")
 
-    # Resolve job dir (try output_root, then old resolver, then disk scan)
-    output_root = resolve_output_root(job_id)
-    if not output_root:
-        try:
-            # Old resolver (supports test mocks)
-            old_job_dir = _resolve_job_dir(job_id)
-            if old_job_dir:
-                output_root = old_job_dir
-        except Exception:
-            pass
-    if not output_root:
-        for root in [_PROJECT_ROOT, _PROJECT_ROOT.parent]:
-            for suffix in ["", "_output_v7", "_output_v6", "_output"]:
-                candidate = root / f"{job_id}{suffix}"
-                if candidate.is_dir():
-                    output_root = candidate
-                    break
-            if output_root:
-                break
-    if not output_root:
-        raise HTTPException(404, f"Job output not found: {job_id}")
-
+    try:
+        runtime = get_workspace_runtime(job_id)
+    except HTTPException:
+        old_job_dir = _resolve_job_dir(job_id)
+        if not old_job_dir:
+            raise
+        runtime = JobWorkspaceRuntime(job_id, old_job_dir)
+    output_root = runtime.layout.output_root
     job_dir = output_root
 
     all_points = load_organized_rows(job_dir)
@@ -259,7 +247,7 @@ async def copy_by_cluster(body: dict):
 
     export_name = body.get("export_name") or sanitize_filename("整理画板", fallback="organize")
     # Build export path directly under output_root/exports/
-    exports_base = output_root / "exports"
+    exports_base = runtime.layout.exports_dir
     exports_base.mkdir(parents=True, exist_ok=True)
     candidate = exports_base / export_name
     if not candidate.exists():
@@ -302,23 +290,11 @@ async def copy_by_cluster(body: dict):
         img_rel = (p.get("image_path") or p.get("filename") or "").replace("\\", "/")
         if not img_rel:
             continue
-
-        candidates = [
-            _PROJECT_ROOT / img_rel,
-            job_dir / img_rel,
-        ]
-        exp = read_json(job_dir, "experiment.json")
-        for input_dir in exp.get("input_folders", []):
-            candidates.append(Path(input_dir) / img_rel)
-
-        src = None
-        for c in candidates:
-            if c.exists() and c.is_file():
-                src = c
-                break
-
-        if not src:
-            failed.append({"image": img_rel, "reason": "source not found"})
+        image_id = p.get("image_id") or stable_image_id(img_rel)
+        try:
+            src = runtime.media.get_source_path(str(image_id))
+        except HTTPException:
+            failed.append({"image_id": image_id, "image": img_rel, "reason": "source not found"})
             continue
 
         # Use unique_filename to avoid conflicts
@@ -364,7 +340,7 @@ async def copy_by_cluster(body: dict):
     }
     # Write record directly
     try:
-        records_dir = output_root / "_studio" / "export_records"
+        records_dir = runtime.layout.export_records_dir
         records_dir.mkdir(parents=True, exist_ok=True)
         with open(records_dir / f"{export_id}.json", "w", encoding="utf-8") as f:
             json.dump(record, f, indent=2, ensure_ascii=False)

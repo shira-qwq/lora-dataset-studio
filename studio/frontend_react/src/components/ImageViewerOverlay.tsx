@@ -15,14 +15,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ImageViewerOverlayProps {
-  src: string;
+  originalUrl: string | null;
   filename?: string;
   onClose: () => void;
 }
 
 type DragState = { isDragging: boolean; startX: number; startY: number; imgX: number; imgY: number };
 
-export default function ImageViewerOverlay({ src, filename, onClose }: ImageViewerOverlayProps) {
+export default function ImageViewerOverlay({ originalUrl, filename, onClose }: ImageViewerOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [scale, setScale] = useState(1);
@@ -40,7 +40,7 @@ export default function ImageViewerOverlay({ src, filename, onClose }: ImageView
     scaleRef.current = 1;
     posRef.current = { x: 0, y: 0 };
     setImgLoaded(false);
-  }, [src]);
+  }, [originalUrl]);
 
   // Keyboard: ESC close
   useEffect(() => {
@@ -197,22 +197,26 @@ export default function ImageViewerOverlay({ src, filename, onClose }: ImageView
         width: '100%',
         position: 'relative',
       }}>
-        <img
-          ref={imgRef}
-          src={src}
-          alt={filename || 'preview'}
-          onLoad={handleImgLoad}
-          onDragStart={(e) => e.preventDefault()}
-          style={{
-            maxWidth: '90%',
-            maxHeight: '80%',
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-            cursor: dragRef.current.isDragging ? 'grabbing' : 'grab',
-            objectFit: 'contain',
-            transition: dragRef.current.isDragging ? 'none' : 'transform 0.08s ease',
-            pointerEvents: 'none',
-          }}
-        />
+        {originalUrl ? (
+          <img
+            ref={imgRef}
+            src={originalUrl}
+            alt={filename || 'preview'}
+            onLoad={handleImgLoad}
+            onDragStart={(e) => e.preventDefault()}
+            style={{
+              maxWidth: '90%',
+              maxHeight: '80%',
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              cursor: dragRef.current.isDragging ? 'grabbing' : 'grab',
+              objectFit: 'contain',
+              transition: dragRef.current.isDragging ? 'none' : 'transform 0.08s ease',
+              pointerEvents: 'none',
+            }}
+          />
+        ) : (
+          <div style={{ color: '#ddd', fontSize: 13 }}>Original image is missing.</div>
+        )}
       </div>
     </div>,
     document.body

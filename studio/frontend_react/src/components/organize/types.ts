@@ -6,6 +6,9 @@ export interface ImageData {
   image_path: string;
   clusterId: string;
   thumbUrl: string;
+  originalUrl: string | null;
+  exists: boolean;
+  missingReason?: string | null;
   /** Aspect ratio (width/height). 1.0 if unknown. */
   aspectRatio?: number;
 }

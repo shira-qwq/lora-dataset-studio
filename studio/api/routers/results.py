@@ -51,6 +51,10 @@ def _resolve_job_dir(job_id: str) -> Path:
     """
     if not job_id:
         raise HTTPException(status_code=404, detail="Empty job_id")
+    from light_analysis_engine.workspace.compatibility import resolve_output_root
+    resolved_root = resolve_output_root(job_id, roots=[_OUTPUTS_BASE, _OUTPUTS_BASE.parent])
+    if resolved_root:
+        return resolved_root
 
     # 1. jobs.py 内存状态
     try:
@@ -221,6 +225,13 @@ async def get_summary(job_id: str):
 @router.get("/{job_id}/clusters")
 async def list_clusters(job_id: str):
     """List all clusters with counts, names, colors."""
+    try:
+        from light_analysis_engine.workspace import get_workspace_runtime
+        return get_workspace_runtime(job_id).clusters_json()
+    except HTTPException:
+        pass
+    except Exception:
+        pass
     d = _resolve_job_dir(job_id)
     rows = load_organized_rows(d)
     cluster_catalog = load_cluster_catalog(d)
@@ -326,13 +337,21 @@ async def get_health(job_id: str):
 
 
 @router.get("/{job_id}/image")
+@router.get("/{job_id}/original")
 async def get_original_image(job_id: str, image_id: str = Query(...)):
-    """Serve original image by image_id.
+    """Serve original image by image_id (aliased at /image and /original).
 
     image_id is the url-safe base64 of the original relative path.
     Returns the original image file, not a thumbnail.
     Security: only serves files registered in the job's input directory.
     """
+    try:
+        from light_analysis_engine.workspace import get_workspace_runtime
+        return get_workspace_runtime(job_id).media.get_original_response(image_id)
+    except HTTPException:
+        raise
+    except Exception:
+        pass
     d = _resolve_job_dir(job_id)
     decoded = _decode_image_id(image_id)
     decoded_name = Path(decoded).name
@@ -394,18 +413,90 @@ async def get_original_image(job_id: str, image_id: str = Query(...)):
     )
 
 
+@router.get("/{job_id}/images/{image_id}/meta")
+async def get_image_meta(job_id: str, image_id: str):
+    """Return image metadata (exists, source_path, thumbnail_url, original_url).
+
+    Unified image reference endpoint.
+    """
+    try:
+        from light_analysis_engine.workspace import get_workspace_runtime
+        return get_workspace_runtime(job_id).media.get_image_ref(image_id).to_json()
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+    d = _resolve_job_dir(job_id)
+    from urllib.parse import quote
+
+    decoded = _decode_image_id(image_id)
+    decoded_name = Path(decoded).name
+
+    # Try to find source file
+    source_path = None
+    exists = False
+    exp = read_json(d, "experiment.json")
+    input_folders = exp.get("input_folders", [])
+    candidates = [decoded]
+    if decoded_name and decoded_name not in candidates:
+        candidates.append(decoded_name)
+
+    for folder in input_folders:
+        folder_path = Path(folder)
+        for rel in candidates:
+            for cand in (folder_path / rel, folder_path / Path(rel).name):
+                if cand.exists() and cand.is_file():
+                    source_path = str(cand)
+                    exists = True
+                    break
+            if exists:
+                break
+        if exists:
+            break
+
+    if not exists:
+        for rel in candidates:
+            cand = d / rel
+            if cand.exists() and cand.is_file():
+                source_path = str(cand)
+                exists = True
+                break
+
+    from ..path_resolver import sanitize_filename
+
+    response_data = {
+        "image_id": image_id,
+        "exists": exists,
+        "source_path": source_path or "",
+        "reason": "" if exists else "source file missing",
+        "thumbnail_url": f"/api/v1/results/{job_id}/thumbnail?image_id={image_id}&size=384",
+        "original_url": f"/api/v1/results/{job_id}/original?image_id={image_id}",
+    }
+    return response_data
+
+
 @router.get("/{job_id}/thumbnail")
-async def get_thumbnail(job_id: str, path: str = Query(...),
+async def get_thumbnail(job_id: str, path: str = Query(default=None),
+                        image_id: str = Query(default=None),
                         size: int = Query(256, ge=64, le=2048)):
     """Serve image thumbnail. Supports configurable size. Caches per size.
 
+    Accepts either `path` (raw file path) or `image_id` (base64 encoded path).
     RELEASE-002R: cache to <output_root>/_cache/thumbnails/<size>/
     Old fallback: <output_root>/thumbnails/
     """
+    if image_id:
+        try:
+            from light_analysis_engine.workspace import get_workspace_runtime
+            return get_workspace_runtime(job_id).media.get_thumbnail_response(image_id, size=size)
+        except HTTPException:
+            raise
+        except Exception:
+            pass
     from ..path_resolver import find_thumbnail_file, resolve_output_root, resolve_thumbnail_dir
 
     d = _resolve_job_dir(job_id)
-    stem = Path(path).stem
+    stem = Path(path or image_id or "image").stem
 
     # Try new cache path _cache/thumbnails/, then old thumbnails/
     cached = find_thumbnail_file(job_id, stem, size)
@@ -448,26 +539,59 @@ async def get_thumbnail(job_id: str, path: str = Query(...),
                     return Response(content=f.read(), media_type="image/jpeg")
 
     # On-demand resize from source
-    p = Path(path)
-    if p.is_absolute() and p.exists():
-        img_path = p
-    else:
-        img_path = d / path
-
-    if not img_path.exists():
-        exp = read_json(d, "experiment.json")
-        for folder in exp.get("input_folders", []):
-            cand = Path(folder) / path
+    # Resolve source path from `path` (raw) or `image_id` (base64)
+    if path:
+        img_path = None
+        p = Path(path)
+        if p.is_absolute() and p.exists():
+            img_path = p
+        else:
+            cand = d / path
             if cand.exists():
                 img_path = cand
+        if not img_path:
+            exp = read_json(d, "experiment.json")
+            for folder in exp.get("input_folders", []):
+                cand = Path(folder) / path
+                if cand.exists():
+                    img_path = cand
+                    break
+                cand2 = Path(folder) / Path(path).name
+                if cand2.exists():
+                    img_path = cand2
+                    break
+    elif image_id:
+        # Resolve via image_id (base64 encoded path)
+        decoded = _decode_image_id(image_id)
+        decoded_name = Path(decoded).name
+        candidates = [decoded]
+        if decoded_name and decoded_name not in candidates:
+            candidates.append(decoded_name)
+        img_path = None
+        exp = read_json(d, "experiment.json")
+        for folder in exp.get("input_folders", []):
+            folder_path = Path(folder)
+            for rel in candidates:
+                for cand in (folder_path / rel, folder_path / Path(rel).name):
+                    if cand.exists() and cand.is_file():
+                        img_path = cand
+                        break
+                if img_path:
+                    break
+            if img_path:
                 break
-            cand2 = Path(folder) / Path(path).name
-            if cand2.exists():
-                img_path = cand2
-                break
+        if not img_path:
+            for rel in candidates:
+                cand = d / rel
+                if cand.exists() and cand.is_file():
+                    img_path = cand
+                    break
+    else:
+        img_path = None
 
-    if not img_path.exists():
-        raise HTTPException(404, f"Image not found: {path}")
+    if not img_path or not img_path.exists():
+        detail = f"Image not found: path={path or '(none)'} image_id={image_id or '(none)'}"
+        raise HTTPException(404, detail)
     try:
         from PIL import Image
         import io

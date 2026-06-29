@@ -166,10 +166,14 @@ export interface ClustersResponse {
 /** Raw image item as returned by the backend. */
 export interface ImageItem {
   filename: string;
-  image_path: string;   // ← backend uses "image_path", NOT "path"
+  image_path: string;
+  image_id?: string;
   cluster_id: number;
   cluster_name?: string;
   original_cluster_id?: number;
+  width?: number;
+  height?: number;
+  file_size_mb?: number;
 }
 
 export interface ImagesResponse {
@@ -223,6 +227,12 @@ export async function fetchImages(jobId: string, clusterId: string, limit = 500)
   return resp.json();
 }
 
+/** Build thumbnail URL from image_id (preferred). */
+export function getThumbnailUrlById(jobId: string, imageId: string, size = 240): string {
+  const srv = SERVER_BASE || 'http://127.0.0.1:8003/api/v1';
+  return `${srv}/results/${encodeURIComponent(jobId)}/thumbnail?image_id=${encodeURIComponent(imageId)}&size=${size}`;
+}
+
 /** Build thumbnail URL from image_path. */
 export function getThumbnailUrl(jobId: string, imagePath: string, size = 240, qualityKey?: string): string {
   // Ensure forward slashes for URLs, even on Windows
@@ -236,6 +246,21 @@ export function getThumbnailUrl(jobId: string, imagePath: string, size = 240, qu
   params.set('size', String(size));
   if (qualityKey) params.set('q', qualityKey);
   return `${SERVER_BASE}/api/v1/results/${encodeURIComponent(jobId)}/thumbnail?${params.toString()}`;
+}
+
+/** Fetch image metadata (exists, source_path, thumbnail_url, original_url). */
+export async function fetchImageMeta(jobId: string, imageId: string): Promise<{
+  image_id: string;
+  exists: boolean;
+  source_path: string;
+  reason?: string;
+  thumbnail_url: string;
+  original_url: string;
+}> {
+  const url = `${API_BASE}/results/${encodeURIComponent(jobId)}/images/${encodeURIComponent(imageId)}/meta`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`GET ${url} → HTTP ${resp.status}`);
+  return resp.json();
 }
 
 /**
